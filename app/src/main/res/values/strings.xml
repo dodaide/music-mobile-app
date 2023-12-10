@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">MusicApp</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_home">For you</string>
+    <string name="title_song">Songs</string>
+    <string name="title_albums">Albums</string>
+    <string name="title_artists">Artists</string>
+    <string name="title_playlists">Playlists</string>
 </resources>
