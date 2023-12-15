@@ -1,29 +1,32 @@
 package com.example.musicapp.ui.musicplayer
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.SeekBar
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
+import com.bumptech.glide.Glide
 import com.example.musicapp.R
 import com.example.musicapp.databinding.FragmentMusicPlayerBinding
+import java.util.concurrent.Executors
 
 class MusicPlayerFragment : Fragment() {
 
     private lateinit var binding: FragmentMusicPlayerBinding
     private lateinit var viewModel: MusicPlayerViewModel
     private lateinit var mediaPlayer: MediaPlayer
-    private val handler = Handler()
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -31,12 +34,13 @@ class MusicPlayerFragment : Fragment() {
     ): View {
         binding = FragmentMusicPlayerBinding.inflate(inflater, container, false)
         viewModel = ViewModelProvider(this)[MusicPlayerViewModel::class.java]
+        binding.viewModel = viewModel
         mediaPlayer = MediaPlayer() // Khởi tạo mediaPlayer
 
         setupUI()
         observeViewModel()
 
-        viewModel.setCurrentSongUrl("https://vnno-vn-5-tf-a128-zmp3.zmdcdn.me/d0d6548a133d1896ae5f547c0a1892bc?authen=exp=1702547874~acl=/d0d6548a133d1896ae5f547c0a1892bc/*~hmac=b6ef5461f6c4a05716abda53f88f3e65&fs=MTmUsICwMjM3NTA3NDEwMnx3ZWJWNHwxNC4xNjMdUngMjM2LjE3Mg")
+        viewModel.fetchSongInfo("11131abd-1b99-688b-96f6-423b4e874d0f")
 
         return binding.root
     }
@@ -76,20 +80,13 @@ class MusicPlayerFragment : Fragment() {
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 // Tiếp tục cập nhật trạng thái của SeekBar sau khi người dùng đã kết thúc việc di chuyển
+                mediaPlayer.start()
                 updateSeekBar()
             }
         })
     }
 
     private fun observeViewModel() {
-        viewModel.songName.observe(viewLifecycleOwner) { songName ->
-            binding.textViewSongName.text = songName
-        }
-
-        viewModel.artist.observe(viewLifecycleOwner) { artist ->
-            binding.textViewArtist.text = artist
-        }
-
         viewModel.isRepeatOn.observe(viewLifecycleOwner) { isRepeatOn ->
             if(isRepeatOn == true) {
                 binding.repeatButton.setColorFilter(ContextCompat.getColor(requireContext(),R.color.primary))
@@ -131,14 +128,28 @@ class MusicPlayerFragment : Fragment() {
                 mediaPlayer.start()
 
                 val duration = mediaPlayer.duration
-                binding.seekBar.max = duration
                 binding.textViewDuration.text = changeToMinus(duration)
+                binding.seekBar.max = duration
 
                 // Cập nhật trạng thái của SeekBar theo thời gian của video
                 updateSeekBar()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+
+        viewModel.imgUrl.observe(viewLifecycleOwner) { imgUrl ->
+            Glide.with(requireContext())
+                .load(imgUrl)
+                .into(binding.imageViewSong)
+        }
+
+        viewModel.artist.observe(viewLifecycleOwner) { artist ->
+            binding.textViewArtist.text = artist
+        }
+
+        viewModel.songName.observe(viewLifecycleOwner) { songName ->
+            binding.textViewSongName.text = songName
         }
     }
 
@@ -147,9 +158,8 @@ class MusicPlayerFragment : Fragment() {
             val time = mediaPlayer.currentPosition
             binding.seekBar.progress = time
             binding.textViewTime.text = changeToMinus(time)
+            handler.postDelayed({ updateSeekBar() }, 100)
         }
-
-        handler.postDelayed({ updateSeekBar() }, 100)
     }
 
     private fun changeToMinus(durationInMillis: Int) : String {
